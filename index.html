@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Clipboards</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    >
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  </head>
+  <body>
+    <main id="root" class='container'></main>
+    <script>
+      const CE = React.createElement;
+      function App() {
+        const [msg, codes] = React.useMemo(() => {
+          try {
+            const url = new URL(window.location.href).searchParams;
+            const codes = url.get('codes')??'';
+            const msg = url.get('msg')??'';
+
+            return [msg, codes.split(',')];
+          } catch (e) {
+            return [`${e}`, []];
+          }
+        }, []);
+
+        return CE('div', {className: 'grid'}, 
+          CE('div', {}, ' '),
+          CE('div', {},
+            CE('div', {},
+              CE('h1', {}, msg),
+              CE('h2', {}, 'Click the code to copy'),
+              ...codes.map(code => CE('div', {},
+                CE(CodeItem, {code: code})
+              ))
+            )
+          ),
+          CE('div', {}, ' ')
+        );
+      }
+
+      function CodeItem(props) {
+        const code = props.code;
+        const [checked, setChecked] = React.useState(false);
+        const cb = React.useCallback(() => {
+          navigator.clipboard.writeText(code);
+          setChecked(true);
+        });
+        const buttonClass = checked ? 'secondary' : 'primary';
+        return CE('input', {
+          type: 'button',
+          className: buttonClass,
+          onClick: cb,
+          value: code
+        });
+      }
+
+      const container = document.getElementById('root');
+      const root = ReactDOM.createRoot(container);
+      root.render(CE(App, {}));
+    </script>
+  </body>
+</html>
