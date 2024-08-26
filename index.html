@@ -20,10 +20,10 @@
         const [msg, codes] = React.useMemo(() => {
           try {
             const url = new URL(window.location.href).searchParams;
-            const codes = url.get('codes')??'';
+            const codes = url.get('codes');
             const msg = url.get('msg')??'';
 
-            return [msg, codes.split(',')];
+            return [msg, codes ? codes.split(',') : []];
           } catch (e) {
             return [`${e}`, []];
           }
@@ -32,15 +32,64 @@
         return CE('div', {className: 'grid'}, 
           CE('div', {}, ' '),
           CE('div', {},
-            CE('div', {},
-              CE('h1', {}, msg),
-              CE('h2', {}, 'Click the code to copy'),
-              ...codes.map(code => CE('div', {},
-                CE(CodeItem, {code: code})
-              ))
-            )
+            codes.length == 0 ?
+            CE(CodesEditView, {}) :
+            CE(CodesView, { msg, codes },
+              CE('a', {
+                href: `${window.location.protocol}//${window.location.hostname}`
+              }, 'create new'),
+            ),
           ),
           CE('div', {}, ' ')
+        );
+      }
+
+      function CodesEditView(props) {
+        const [msg, setMsg] = React.useState('');
+        const [codes, setCodes] = React.useState('');
+        const sanitizedCodes = React.useMemo(() => {
+          return [...new Set(codes.split('\n').map(s => s.trim()).filter(s => s.length > 0))];
+        }, [codes]);
+        const linkCb = React.useCallback(() => {
+          const url = new URL(window.location.href);
+          url.searchParams = new URLSearchParams();
+          if (msg.trim().length != 0) {
+            url.searchParams.append('msg', msg.trim());
+          }
+          url.searchParams.append('codes', sanitizedCodes.join(','));
+          navigator.clipboard.writeText(url.toString());
+        }, [msg, sanitizedCodes]);
+
+        return CE('div', {},
+          CE('h1', {}, 'Edit'),
+          CE('h2', {}, 'Type some message'),
+          CE('input', {
+            type: 'text',
+            defaultValue: msg,
+            onChange(e) { setMsg(e.target.value) }
+          }),
+          CE('h2', {}, 'Type codes line by line'),
+          CE('textarea', {
+            defaultValue: codes,
+            onChange(e) { setCodes(e.target.value) }
+          }),
+          CE('h1', {
+            onClick: linkCb,
+          }, 'Preview - click here to copy link'),
+          CE(CodesView, { msg, codes: sanitizedCodes }),
+        )
+      }
+
+      function CodesView(props) {
+        const { msg, codes } = props;
+
+        return CE('div', {},
+          CE('h1', {}, msg),
+          CE('h2', {}, 'Click the code to copy'),
+          ...codes.map(code => CE('div', {},
+            CE(CodeItem, {code: code})
+          )),
+          props.children
         );
       }
 
